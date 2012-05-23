@@ -1,4 +1,4 @@
 base
 ====
 
-A base repository for Rails 3.2+, ember, and bootstrap
+A base repository for Rails 3.2+, ember, and bootstrap, based projects.
