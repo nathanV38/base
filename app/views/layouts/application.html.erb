@@ -4,6 +4,15 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><%= content_for?(:title) ? yield(:title) : "Base" %></title>
+    <script type="text/javascript">
+      ENV = {VIEW_PRESERVES_CONTEXT: true, CP_DEFAULT_CACHEABLE: true};
+      authParams = {'authenticity_token':'<%= form_authenticity_token %>'};
+      Devise = {
+        password_length: {min:<%= Devise.password_length.min.to_json.html_safe %>,
+          max:<%= Devise.password_length.max.to_json.html_safe %>},
+        email_pattern: <%= '^[^@]+@[^@]+$'.to_json.html_safe %>
+      }
+    </script>
     <%= csrf_meta_tags %>
 
     <!-- Le HTML5 shim, for IE6-8 support of HTML elements -->
@@ -45,9 +54,9 @@
           <div class="well sidebar-nav">
             <ul class="nav nav-list">
               <li class="nav-header">Sidebar</li>
-              <li><%= link_to_function "Test1", "Base.navController.get('pageStates').goToState( 'page1')"  %></li>
-              <li><%= link_to_function "Test2", "Base.navController.get('pageStates').goToState( 'page2')"  %></li>
-              <li><%= link_to_function "Test3", "Base.navController.get('pageStates').goToState( 'page3')"  %></li>
+              <li><%= link_to_function "Page1", "Base.navController.set('selection', 'page1')"  %></li>
+              <li><%= link_to_function "Page2", "Base.navController.set('selection', 'page2')"  %></li>
+              <li><%= link_to_function "Page3", "Base.navController.set('selection', 'page3')"  %></li>
             </ul>
           </div><!--/.well -->
         </div><!--/span-->

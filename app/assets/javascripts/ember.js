@@ -42,9 +42,7 @@ if ('undefined' === typeof Ember) {
 */
 Ember.assert = function(desc, test) {
   if ('function' === typeof test) test = test()!==false;
-  if (!test) {
-    throw new Error("assertion failed: "+desc);
-  }
+  if (!test) throw new Error("assertion failed: "+desc);
 };
 
 
@@ -5160,13 +5158,36 @@ Ember.run.schedule = function(queue, target, method) {
   loop.schedule.apply(loop, arguments);
 };
 
-var autorunTimer;
-
+var scheduledAutorun;
 /** @private */
 function autorun() {
-  autorunTimer = null;
+  scheduledAutorun = null;
   if (run.currentRunLoop) run.end();
 }
+
+// Used by global test teardown
+/** @private */
+Ember.run.hasScheduledTimers = function() {
+  return !!(scheduledAutorun || scheduledLater || scheduledNext);
+};
+
+// Used by global test teardown
+/** @private */
+Ember.run.cancelTimers = function () {
+  if (scheduledAutorun) {
+    clearTimeout(scheduledAutorun);
+    scheduledAutorun = null;
+  }
+  if (scheduledLater) {
+    clearTimeout(scheduledLater);
+    scheduledLater = null;
+  }
+  if (scheduledNext) {
+    clearTimeout(scheduledNext);
+    scheduledNext = null;
+  }
+  timers = {};
+};
 
 /**
   Begins a new RunLoop if necessary and schedules a timer to flush the
@@ -5183,11 +5204,8 @@ Ember.run.autorun = function() {
   if (!run.currentRunLoop) {
     run.begin();
 
-    if (Ember.ENV.PREVENT_AUTOMATIC_RUNLOOP_CREATION) {
-      throw "A RunLoop cannot be automatically created during testing. " +
-            "Wrap code that requires an active RunLoop inside an Ember.run(function{ ... }).";
-    } else if (!autorunTimer) {
-      autorunTimer = setTimeout(autorun, 1);
+    if (!scheduledAutorun) {
+      scheduledAutorun = setTimeout(autorun, 1);
     }
   }
 
@@ -5217,9 +5235,10 @@ Ember.run.sync = function() {
 
 var timers = {}; // active timers...
 
-var laterScheduled = false;
+var scheduledLater;
 /** @private */
 function invokeLaterTimers() {
+  scheduledLater = null;
   var now = (+ new Date()), earliest = -1;
   for(var key in timers) {
     if (!timers.hasOwnProperty(key)) continue;
@@ -5235,7 +5254,7 @@ function invokeLaterTimers() {
   }
 
   // schedule next timeout to fire...
-  if (earliest>0) setTimeout(invokeLaterTimers, earliest-(+ new Date()));
+  if (earliest>0) scheduledLater = setTimeout(invokeLaterTimers, earliest-(+ new Date()));
 }
 
 /**
@@ -5353,7 +5372,7 @@ Ember.run.once = function(target, method) {
   return guid;
 };
 
-var scheduledNext = false;
+var scheduledNext;
 /** @private */
 function invokeNextTimers() {
   scheduledNext = null;
@@ -6735,6 +6754,8 @@ Mixin.prototype.reopen = function() {
     mixin.properties = this.properties;
     delete this.properties;
     this.mixins = [mixin];
+  } else if (!this.mixins) {
+    this.mixins = [];
   }
 
   var len = arguments.length, mixins = this.mixins, idx;
@@ -7568,7 +7589,7 @@ Ember.String = {
 
   /**
     Returns the lowerCaseCamel form of a string.
-    
+
         'innerHTML'.camelize()         => 'innerHTML'
         'action_name'.camelize()       => 'actionName'
         'css-class-name'.camelize()    => 'cssClassName'
@@ -7583,6 +7604,19 @@ Ember.String = {
     return str.replace(STRING_CAMELIZE_REGEXP, function(match, separator, chr) {
       return chr ? chr.toUpperCase() : '';
     });
+  },
+
+  /**
+    Returns the UpperCamelCase form of a string.
+
+        'innerHTML'.classify()         => 'InnerHTML'
+        'action_name'.classify()       => 'ActionName'
+        'css-class-name'.classify()    => 'CssClassName'
+        'my favorite items'.classift() => 'MyFavoriteItems'
+  */
+  classify: function(str) {
+    var camelized = Ember.String.camelize(str);
+    return camelized.charAt(0).toUpperCase() + camelized.substr(1);
   },
 
   /**
@@ -7604,6 +7638,7 @@ Ember.String = {
       replace(STRING_UNDERSCORE_REGEXP_2, '_').toLowerCase();
   }
 };
+
 })();
 
 
@@ -11850,6 +11885,15 @@ Ember.runLoadHooks = function(name, object) {
 
 
 (function() {
+Ember.ControllerMixin = Ember.Mixin.create();
+
+Ember.Controller = Ember.Object.extend(Ember.ControllerMixin);
+
+})();
+
+
+
+(function() {
 // ==========================================================================
 // Project:  Ember Runtime
 // Copyright: ©2011 Strobe Inc. and contributors.
@@ -11894,14 +11938,14 @@ Ember.runLoadHooks = function(name, object) {
   @extends Ember.ArrayProxy
 */
 
-Ember.ArrayController = Ember.ArrayProxy.extend();
+Ember.ArrayController = Ember.ArrayProxy.extend(Ember.ControllerMixin);
 
 })();
 
 
 
 (function() {
-Ember.ObjectController = Ember.ObjectProxy.extend();
+Ember.ObjectController = Ember.ObjectProxy.extend(Ember.ControllerMixin);
 
 })();
 
@@ -12012,36 +12056,46 @@ Ember.Application = Ember.Namespace.extend(
 
     Example:
 
-      App.PostsController = Ember.ArrayController.extend();
-      App.CommentsController = Ember.ArrayController.extend();
+        App.PostsController = Ember.ArrayController.extend();
+        App.CommentsController = Ember.ArrayController.extend();
 
-      var stateManager = Ember.StateManager.create({
-        ...
-      });
+        var router = Ember.Router.create({
+          ...
+        });
 
-      App.initialize(stateManager);
+        App.initialize(router);
 
-      stateManager.get('postsController')     // <App.PostsController:ember1234>
-      stateManager.get('commentsController')  // <App.CommentsController:ember1235>
+        router.get('postsController')     // <App.PostsController:ember1234>
+        router.get('commentsController')  // <App.CommentsController:ember1235>
 
-      stateManager.getPath('postsController.stateManager') // stateManager
+        router.getPath('postsController.router') // router
   */
-  initialize: function(stateManager) {
+  initialize: function(router) {
     var properties = Ember.A(Ember.keys(this)),
         injections = get(this.constructor, 'injections'),
         namespace = this, controller, name;
 
-    if (!stateManager && Ember.Router.detect(namespace['Router'])) {
-      stateManager = namespace['Router'].create();
+    if (!router && Ember.Router.detect(namespace['Router'])) {
+      router = namespace['Router'].create();
     }
 
-    set(this, 'stateManager', stateManager);
+    if (router) {
+      set(this, 'stateManager', router);
+    }
+
+    // By default, the router's namespace is the current application.
+    //
+    // This allows it to find model classes when a state has a
+    // route like `/posts/:post_id`. In that case, it would first
+    // convert `post_id` into `Post`, and then look it up on its
+    // namespace.
+    set(router, 'namespace', this);
 
     Ember.runLoadHooks('application', this);
 
     properties.forEach(function(property) {
       injections.forEach(function(injection) {
-        injection(namespace, stateManager, property);
+        injection(namespace, router, property);
       });
     });
   },
@@ -12107,14 +12161,16 @@ Ember.Application.reopenClass({
   }
 });
 
-Ember.Application.registerInjection(function(app, stateManager, property) {
+Ember.Application.registerInjection(function(app, router, property) {
   if (!/^[A-Z].*Controller$/.test(property)) { return; }
 
   var name = property[0].toLowerCase() + property.substr(1),
       controller = app[property].create();
 
-  stateManager.set(name, controller);
-  controller.set('target', stateManager);
+  router.set(name, controller);
+
+  controller.set('target', router);
+  controller.set('controllers', router);
 });
 
 })();
@@ -12134,6 +12190,9 @@ var get = Ember.get, set = Ember.set;
   onUpdateURL(callback): triggers the callback when the URL changes
 
   Calling setURL will not trigger onUpdateURL callbacks.
+
+  TODO: This, as well as the Ember.Location documentation below, should
+  perhaps be moved so that it's visible in the JsDoc output.
 */
 
 /**
@@ -12209,12 +12268,12 @@ Ember.HashLocation = Ember.Object.extend({
 Ember.Location = {
   create: function(options) {
     var implementation = options && (options.style || options.implementation);
-    Ember.assert("you must provide an implementation to Ember.Location.create", !!implementation);
+    Ember.assert("Ember.Location.create: you must specify a 'style' option", !!implementation);
 
-    implementation = this.implementations[implementation];
-    Ember.assert("you must provide an implementation to Ember.Location.create", !!implementation);
+    var implementationClass = this.implementations[implementation];
+    Ember.assert("Ember.Location.create: " + implementation + " is not a valid implementation", !!implementationClass);
 
-    return implementation.create.apply(implementation, arguments);
+    return implementationClass.create.apply(implementationClass, arguments);
   },
 
   registerImplementation: function(name, implementation) {
@@ -12881,6 +12940,118 @@ Ember.EventDispatcher = Ember.Object.extend(
 // after bindings have synced.
 var queues = Ember.run.queues;
 queues.splice(Ember.$.inArray('actions', queues)+1, 0, 'render');
+
+})();
+
+
+
+(function() {
+var get = Ember.get, set = Ember.set;
+
+Ember.ControllerMixin.reopen({
+  /**
+    `connectOutlet` creates a new instance of a provided view
+    class, wires it up to its associated controller, and
+    assigns the new view to a property on the current controller.
+
+    The purpose of this method is to enable views that use
+    outlets to quickly assign new views for a given outlet.
+
+    For example, an application view's template may look like
+    this:
+
+        <h1>My Blog</h1>
+        {{outlet}}
+
+    The view for this outlet is specified by assigning a
+    `view` property to the application's controller. The
+    following code will assign a new `App.PostsView` to
+    that outlet:
+
+        applicationController.connectOutlet(App.PostsView);
+
+    You can specify a particular outlet to use as the first
+    parameter to `connectOutlet`. For example, if your
+    main template looks like:
+
+        <h1>My Blog</h1>
+        {{outlet master}}
+        {{outlet detail}}
+
+    You can assign an `App.PostsView` to the master outlet:
+
+        applicationController.connectOutlet('master', App.PostsView);
+
+    In general, you will also want to assign a controller
+    to the newly created view. By convention, a controller
+    named `postsController` will be assigned as the view's
+    controller.
+
+    In an application initialized using `app.initialize(router)`,
+    `connectOutlet` will look for `postsController` on the
+    router. The initialization process will automatically
+    create an instance of `App.PostsController` called
+    `postsController`, so you don't need to do anything
+    beyond `connectOutlet` to assign your view and wire it
+    up to its associated controller.
+
+    You can supply a `content` for the controller by supplying
+    a final argument after the view class:
+
+        applicationController.connectOutlet(App.PostsView, App.Post.find());
+
+    The only required argument is `viewClass`. You can optionally
+    specify an `outletName` before `viewClass` and/or a `context`
+    after `viewClass` in any combination.
+
+    @param {String} outletName the name of the outlet to assign
+      the newly created view to (optional)
+    @param {Class} viewClass a view class to instantiate
+    @param {Object} context a context object to assign to the
+      controller's `content` property, if a controller can be
+      found.
+  */
+  connectOutlet: function(outletName, viewClass, context) {
+    // Normalize arguments. Supported arguments:
+    //
+    // viewClass
+    // outletName, viewClass
+    // viewClass, context
+    // outletName, viewClass, context
+    if (arguments.length === 2) {
+      if (Ember.Object.detect(outletName)) {
+        context = viewClass;
+        viewClass = outletName;
+        outletName = 'view';
+      }
+    } else if (arguments.length === 1) {
+      viewClass = outletName;
+      outletName = 'view';
+    }
+
+    var parts = viewClass.toString().split("."),
+        last = parts[parts.length - 1],
+        match = last.match(/^(.*)View$/);
+
+    Ember.assert("The parameter you pass to connectOutlet must be a class ending with View", !!match);
+
+    var bareName = match[1], controllerName;
+    bareName = bareName.charAt(0).toLowerCase() + bareName.substr(1);
+
+    controllerName = bareName + "Controller";
+
+    var controller = get(get(this, 'controllers'), controllerName);
+
+    Ember.assert("You specified a context, but no " + controllerName + " was found", !context || !!controller);
+    if (context) { controller.set('content', context); }
+
+    var view = viewClass.create({ controller: controller });
+    set(this, outletName, view);
+
+    return view;
+  }
+});
+
 
 })();
 
@@ -16083,7 +16254,7 @@ Ember.State = Ember.Object.extend(Ember.Evented, {
     return !get(this, 'childStates').length;
   }).cacheable(),
 
-  setupControllers: Ember.K,
+  connectOutlets: Ember.K,
   enter: Ember.K,
   exit: Ember.K
 });
@@ -16540,7 +16711,7 @@ Ember.StateManager = Ember.State.extend(
     // 1. Normalize arguments
     // 2. Ensure that we are in the correct state
     // 3. Map provided path to context objects and send
-    //    appropriate setupControllers events
+    //    appropriate connectOutlets events
 
     if (Ember.empty(name)) { return; }
 
@@ -16619,9 +16790,8 @@ Ember.StateManager = Ember.State.extend(
       state = this.findStatesByRoute(state, path);
       state = state[state.length-1];
 
-      state.fire('setupControllers', this, context);
+      state.fire('connectOutlets', this, context);
     }, this);
-    //getPath(root, path).setupControllers(this, context);
   },
 
   getState: function(name) {
@@ -16777,9 +16947,17 @@ var get = Ember.get, getPath = Ember.getPath;
 // * .onURLChange(callback) - this happens when the user presses
 //   the back or forward button
 
+var paramForClass = function(classObject) {
+  var className = classObject.toString(),
+      parts = className.split("."),
+      last = parts[parts.length - 1];
+
+  return Ember.String.underscore(last) + "_id";
+};
+
 Ember.Routable = Ember.Mixin.create({
   init: function() {
-    this.on('setupControllers', this, this.stashContext);
+    this.on('connectOutlets', this, this.stashContext);
 
     this._super();
   },
@@ -16827,14 +17005,73 @@ Ember.Routable = Ember.Mixin.create({
   }).cacheable(),
 
   routeMatcher: Ember.computed(function() {
-    return Ember._RouteMatcher.create({ route: get(this, 'route') });
+    if (get(this, 'route')) {
+      return Ember._RouteMatcher.create({ route: get(this, 'route') });
+    }
   }).cacheable(),
 
-  deserialize: function(manager, context) {
-    return context;
+  modelClass: Ember.computed(function() {
+    var modelType = get(this, 'modelType');
+
+    if (typeof modelType === 'string') {
+      return Ember.getPath(window, modelType);
+    } else {
+      return modelType;
+    }
+  }).cacheable(),
+
+  modelClassFor: function(manager) {
+    var modelClass, namespace, routeMatcher, identifiers, match, className;
+
+    // if an explicit modelType was specified, use that
+    if (modelClass = get(this, 'modelClass')) { return modelClass; }
+
+    // if the router has no lookup namespace, we won't be able to guess
+    // the modelType
+    namespace = get(manager, 'namespace');
+    if (!namespace) { return; }
+
+    // make sure this state is actually a routable state
+    routeMatcher = get(this, 'routeMatcher');
+    if (!routeMatcher) { return; }
+
+    // only guess modelType for states with a single dynamic segment
+    // (no more, no fewer)
+    identifiers = routeMatcher.identifiers;
+    if (identifiers.length !== 2) { return; }
+
+    // extract the `_id` from the end of the dynamic segment; if the
+    // dynamic segment does not end in `_id`, we can't guess the
+    // modelType
+    match = identifiers[1].match(/^(.*)_id$/);
+    if (!match) { return; }
+
+    // convert the underscored type into a class form and look it up
+    // on the router's namespace
+    className = Ember.String.classify(match[1]);
+    return get(namespace, className);
+  },
+
+  deserialize: function(manager, params) {
+    var modelClass, routeMatcher, param;
+
+    if (modelClass = this.modelClassFor(manager)) {
+      return modelClass.find(params[paramForClass(modelClass)]);
+    }
+
+    return params;
   },
 
   serialize: function(manager, context) {
+    var modelClass, routeMatcher, namespace, param, id;
+
+    if (modelClass = this.modelClassFor(manager)) {
+      param = paramForClass(modelClass);
+      id = get(context, 'id');
+      context = {};
+      context[param] = id;
+    }
+
     return context;
   },
 
@@ -16867,7 +17104,25 @@ Ember.State.reopen(Ember.Routable);
 
 
 (function() {
-Ember.Router = Ember.StateManager.extend({
+/**
+  @class
+
+  `Ember.Router` is a state manager used for routing.
+
+  A special `Router` property name is recognized on applications:
+
+      var app = Ember.Application.create({
+        Router: Ember.Router.extend(...)
+      });
+      app.initialize();
+
+  Here, `app.initialize` will instantiate the `app.Router` and assign the
+  instance to the `app.stateManager` property.
+
+  @extends Ember.StateManager
+*/
+Ember.Router = Ember.StateManager.extend(
+/** @scope Ember.Router.prototype */ {
   route: function(path) {
     if (path.charAt(0) === '/') {
       path = path.substr(1);
@@ -17169,7 +17424,8 @@ var get = Ember.get, set = Ember.set;
   `view` that references the `Ember.View` object that was interacted with.
   
 **/
-Ember.ViewState = Ember.State.extend({
+Ember.ViewState = Ember.State.extend(
+/** @scope Ember.ViewState.prototype */ {
   isViewState: true,
 
   enter: function(stateManager) {
@@ -19508,6 +19764,49 @@ Ember.Handlebars.registerHelper('yield', function(options) {
   template = get(view, 'template');
 
   if (template) { template(this, options); }
+});
+
+})();
+
+
+
+(function() {
+/**
+  The `outlet` helper allows you to specify that the current
+  view's controller will fill in the view for a given area.
+
+      {{outlet}}
+
+  By default, when the the current controller's `view`
+  property changes, the outlet will replace its current
+  view with the new view.
+
+      controller.set('view', someView);
+
+  You can also specify a particular name, other than view:
+
+      {{outlet masterView}}
+      {{outlet detailView}}
+
+  Then, you can control several outlets from a single
+  controller:
+
+      controller.set('masterView', postsView);
+      controller.set('detailView', postView);
+
+  @name Handlebars.helpers.outlet
+  @param {String} property the property on the controller
+    that holds the view for this outlet
+*/
+Ember.Handlebars.registerHelper('outlet', function(property, options) {
+  if (property && property.data && property.data.isRenderData) {
+    options = property;
+    property = 'view';
+  }
+
+  options.hash.currentViewBinding = "controller." + property;
+
+  return Ember.Handlebars.helpers.view.call(this, Ember.ContainerView, options);
 });
 
 })();

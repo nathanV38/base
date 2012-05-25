@@ -1,0 +1,18 @@
+<h2>Sign in</h2><br>
+
+<form accept-charset="UTF-8" {{action "signIn" on="submit" target="Base.signInController"}}
+  action="#" class="new_user" id="new_user" method="post">
+  {{view "Bootstrap.Forms.TextField"
+          label="email" valueBinding="Base.signInController.email"}}
+  {{view "Bootstrap.Forms.TextField" label="password"
+          valueBinding="Base.signInController.password"}}
+  <div style="margin-bottom: 18px">
+  <label for="rememberMe" style="display:inline-block; padding-right: 10px;">Remember Me</label>
+  {{view "Ember.Checkbox" checkedBinding="Base.signInController.rememberMe" name="rememberMe"}}
+  </div>
+  <div><input name="commit" type="submit" value="Sign in"></div>
+</form>
+
+  <a href="/users/password/new">Forgot your password?</a>
+  <a href="/users/auth/facebook">Sign in with Facebook</a>
+

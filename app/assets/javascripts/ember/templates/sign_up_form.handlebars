@@ -1,0 +1,16 @@
+<h2>Sign up</h2><br>
+<form accept-charset="UTF-8" {{action "signUp" on="submit" target="Base.signUpController"}}
+  action="#" class="new_user" id="new_user" method="post">
+
+  {{view "Bootstrap.Forms.TextField"
+          label="email" valueBinding="Base.signUpController.email"
+          bindingContextBinding="Base.signUpController"}}
+  {{view "Bootstrap.Forms.TextField" label="password"
+          valueBinding="Base.signUpController.password"}}
+  {{view "Bootstrap.Forms.TextField" label="password_confirmation"
+          valueBinding="Base.signUpController.passwordConfirmation"}}
+
+  <div><input name="commit" type="submit" value="Sign up"></div>
+</form>
+<a href="/users/password/new">Forgot your password?</a>
+<a href="/users/auth/facebook">Sign in with Facebook</a>

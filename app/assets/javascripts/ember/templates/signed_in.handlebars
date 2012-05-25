@@ -1,6 +1,8 @@
-<li class="dropdown menu">
+<li id="account_menu" class="dropdown menu">
   <a class="dropdown-toggle" href="#" data-toggle="dropdown">{{Base.currentUser.email}} <b class="caret"></b></a>
-  <div class="dropdown-menu" style="padding: 15px; padding-bottom: 0px;">
-                This is where the account menu goes
-  </div>
+  <ul class="dropdown-menu">
+    <li><a href="#" {{action "showAccount" target="Base"}}>My Account</a></li>
+    <li class="divider"></li>
+    <li><a href="#" {{action "signOut" target="Base"}}>Sign Out</a></li>
+  </ul>
 </li>
