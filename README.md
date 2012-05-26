@@ -19,6 +19,10 @@ a server, and go to http://localhost:3000 to view the base pages.
 The app has several dummy pages to show navigation that can be replaced with real content, it has the typical Devise user sign
 up, sign in, and forgotten password features in the right side of the nav bar.  Sign up and sign in using facebook is supported.
 
+Tests for the project are written in Cucumber.  Invoke using 'cucumber features/*.feature' or 'rake cucumber'.  The tests expect
+environment variables facebook_user and facebook_pass to be defined and set to valid facebook credentials to test the facebook
+integration.
+
 Remaining
 =========
 Routing is still quite new in ember.js so that still needs to be added.
