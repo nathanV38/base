@@ -25,6 +25,7 @@
 Base.signOutPath = <%= Rails.application.routes.url_helpers.destroy_user_session_path.to_json.html_safe %>;
 Base.signUpPath = <%= Rails.application.routes.url_helpers.user_registration_path.to_json.html_safe %>;
 Base.signInPath = <%= Rails.application.routes.url_helpers.user_session_path.to_json.html_safe %>;
+Base.resetPasswordPath = <%= Rails.application.routes.url_helpers.user_password_path.to_json.html_safe %>;
 
 jQuery(function() {
   Base.navController.get('navView').appendTo('#nav_container')

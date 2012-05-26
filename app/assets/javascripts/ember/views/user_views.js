@@ -13,8 +13,16 @@ Base.SignedOutView = Ember.View.extend({
     templateName: "ember/templates/sign_up_form"
   }),
 
-  signInView: Ember.View.extend({
-    templateName: "ember/templates/sign_in_form"
-  })
-})
+  isSignInContent: function() {
+    return Base.userController.get('contentStates').get('currentState').get('name') == 'signInContent';
+  }.property("Base.userController.contentStates.currentState.name")
 
+});
+
+Base.SignInContentView = Ember.View.extend({
+  templateName: "ember/templates/sign_in_form"
+});
+
+Base.PasswordContentView = Ember.View.extend({
+  templateName: "ember/templates/forgot_password_form"
+});

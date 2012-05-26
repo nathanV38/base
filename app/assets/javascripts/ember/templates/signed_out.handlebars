@@ -7,7 +7,11 @@
 <li class="divider-vertical"></li>
 <li id="sign_in_menu" class="dropdown menu">
   <a class="dropdown-toggle" href="#" data-toggle="dropdown">Sign In <b class="caret"></b></a>
-  <div class="dropdown-menu" style="padding: 15px">
-    {{view signInView}}
+  <div id="sign_in_menu_content" class="dropdown-menu" style="padding: 15px">
+    {{#if isSignInContent}}
+      {{view Base.SignInContentView}}
+    {{else}}
+      {{view Base.PasswordContentView}}
+    {{/if}}
   </div>
 </li>

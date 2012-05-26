@@ -3,6 +3,11 @@ Base.SignInController = Ember.Object.extend({
   password: null,
   rememberMe: false,
 
+  forgotPassword: function() {
+    Base.userController.contentStates.goToState('passwordContent');
+    return false;
+  },
+
   signIn: function() {
     try {
       email = this.get('email');
