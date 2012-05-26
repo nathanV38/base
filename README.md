@@ -27,14 +27,15 @@ the server to generate the pages.
 
 Walkthrough
 ===========
-To get started reading the project here are the basic outline of the code.
+To get started reading the project here is a basic outline of the code features.
 
 1) It uses ember-bootstrap which provides some bootstrap friendly wrappers on ember controls and creates the correct classes to
 match bootstrap styling.
 
 2) Devise provides controllers and authentication of users.  While Devise expects to be presenting multiple pages for user input,
 this example uses its own forms and submits them over ajax using ember and jQuery with JSON result types.  Fortunately Devise
-supports JSON for many request types.
+supports JSON for many request types.  For facebook sign in this currently does page loads, but may be modified to use an iFrame
+if there is time.
 
 3) This project has 3 main state machines (used to control what UI is presented to the user (rather than manually
 swapping elements): a) The primary page content, b) the sign in/sign up menus vs. the user account
