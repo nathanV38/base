@@ -89,13 +89,13 @@ state machines have Ember.ViewState states that control the swapping of views.  
 {{#if}} is used based on the current state of the state machine.  This was done both as an example of an alternate way
 to use state machines, and because nested state machines were not behaving as desired at the time of this writing.
 
-templates: these files hold handlebar templates for views in the application.  Some content comes from templates internal
+templates: These files hold handlebar templates for views in the application.  Some content comes from templates internal
 to some of the bootstrap views, but forms in particular and the alternate content for the user states are represented as
 templates.  Some of the page content currently comes from the rails layout, but will be migrated to ember at some time.
 
-views: there are 2 files for the sets of views required.  The page views are all small and intended to be replaced with real
+views: There are 2 files for the sets of views required.  The page views are all small and intended to be replaced with real
 content.  The user views are all just wrappers on the respective templates so they too are too small to warrant separate
 files.
 
-base.js: following ember convention this file creates the application namespace and is required prior to other files so the
+base.js: Following ember convention this file creates the application namespace and is required prior to other files so the
 namespace exists when they are processed.
