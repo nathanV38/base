@@ -216,3 +216,7 @@ Devise.setup do |config|
 
   config.omniauth :facebook, '303954309690601', '8253e372810cdec0832afad700bf6231', :strategy_class => OmniAuth::Strategies::Facebook
 end
+
+OmniAuth.configure do | config |
+  config.logger = Rails.logger
+end

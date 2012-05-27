@@ -46,3 +46,35 @@ When /^I enter facebook credentials$/ do
   page.find('#pass').set(ENV['facebook_pass'])
   click_button 'Log In'
 end
+
+When /^I open the sign up form$/ do
+  page.find('li#sign_up_menu a').click
+end
+
+When /^enter credentials for a new account$/ do
+  fill_in "email", :with => "user1@test.com"
+  fill_in "password", :with => "password"
+  fill_in "password_confirmation", :with => "password"
+  click_button "Sign Up"
+end
+
+Given /^no users are defined$/ do
+  User.delete_all
+end
+
+Then /^I should see the home page without a sign up form showing$/ do
+  page.should have_no_selector(:css, "#sign_up_menu_content")
+end
+
+When /^I should be able to sign in with the new account$/ do
+  sleep 2
+  page.find('li#account_menu a').click
+  click_link 'Sign Out'
+  page.find('li#sign_in_menu a').click
+  sleep 2
+  fill_in "email", :with => "user1@test.com"
+  fill_in "password", :with => "password"
+  click_button "Sign In"
+  step "I should see the home page without a sign in form showing"
+end
+

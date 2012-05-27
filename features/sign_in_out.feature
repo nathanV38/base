@@ -6,6 +6,12 @@ Feature: Users should be able to sign in and out of the system as well as create
 
   @javascript
   Scenario: Sign up for an account
+    Given no users are defined
+    And I am on the home page
+    When I open the sign up form
+    And enter credentials for a new account
+    Then I should see the home page without a sign up form showing
+    And I should be able to sign in with the new account
 
   @javascript
   Scenario: Sign in with an account
