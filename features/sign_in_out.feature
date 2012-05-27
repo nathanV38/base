@@ -14,15 +14,6 @@ Feature: Users should be able to sign in and out of the system as well as create
     And I should be able to sign in with the new account
 
   @javascript
-  Scenario: Sign in with an account
-
-  @javascript
-  Scenario: Sign out of an account
-
-  @javascript
-  Scenario: Sign up using facebook
-
-  @javascript
   Scenario: Sign in using facebook when not already signed in to facebook
     Given I am not signed in to facebook
     And I am on the home page
